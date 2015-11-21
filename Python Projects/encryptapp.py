@@ -1,9 +1,17 @@
-"""
+""" Coded By: Richard Bonett
+
+Creates a GUI to encrypt text.
+
+Implemented as three text boxes; 
+    --The leftmost text box allows for text to be inputted
+    --The middle text box allows for a password
+    --The rightmost text box presents the encrypted text
 """
 
 from tkinter import *
 
 class Encoded :
+    """ The Encoded class has methods to encode data"""
     def __init__(self, text, code) :
         self.alphabet = {'U': '000100', 'e': '100101', '0': '010110', 'G': '110110', 
                     'b': '110010', 'g': '110111', 'u': '110011', '6': '100001', 
@@ -28,6 +36,7 @@ class Encoded :
         self.translate()
         
     
+    """ Reverse the input dictionary"""
     def reverse(self, dictionary) :
         revDict = dict()
         for key in dictionary :
@@ -36,6 +45,7 @@ class Encoded :
         return revDict
     
         
+    """ Convert the input string to 'binary' defined by the dictionary"""
     def returnBinary(self, string) :
         data = ""
         for char in string:
@@ -45,6 +55,8 @@ class Encoded :
                 data += char   
         return data
         
+        
+    """ 'Encodes' input code string"""
     def affCode(self, code) :
         aff = str()
         for char in code :
@@ -61,9 +73,9 @@ class Encoded :
         return aff
     
         
+    """ Encodes text stored in self.text"""
     def encode(self) :
         retData = ""
-        
         charC = 0
         for char in self.text :
             if charC > len(self.code) - 1 :
@@ -78,6 +90,7 @@ class Encoded :
         self.text = retData
             
     
+    """ Translates 'binary' data to ASCII characters"""
     def translate(self):
         retData = ""
         retChar = ""
@@ -91,8 +104,9 @@ class Encoded :
                 retChar = ""
         self.text = retData
       
-              
+    
 class EncryptGUI :
+    """ """
     def __init__(self) :
         self.root = Tk()
         self.title = Label(text="Text Encryption Service", font="Verdana 20")
