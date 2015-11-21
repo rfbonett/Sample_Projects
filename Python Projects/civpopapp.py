@@ -1,13 +1,10 @@
-"""
+""" Coded By: Richard Bonett (rfbonett)          
 Generates a GUI used to calculate the population of a civilization from the
-popular Sid Meier's Civilization franchise. The GUI is relatively simple to 
-use, and self explanatory to even the simple-minded. As far as the code is 
-concerned, it uses the following layout:
+popular Sid Meier's Civilization franchise.
 
+The GUI uses the following layout :
 City: Generates a new city entry, containing an entry box for the city's
       name, as well as buttons to alter the city's size or destroy the city
-      
-      
 PopValLabel: Generates a label representing the value of the civ's overall
              population based on the individual cities' sizes
              
@@ -19,6 +16,7 @@ Quit: Allows the program to be terminated
 import tkinter as gui
     
 class City :     
+    """ A City class defines the widgets attached to each city"""
     def __init__(self, i) :
         self.val = 0
         self.var = gui.IntVar()
@@ -26,6 +24,7 @@ class City :
         self.i = i
         
     
+    """ Builds the widgets for the City """
     def genWidgets(self, i) :
         self.name = gui.Entry(width=30, font="Verdana 12 bold")
         self.name.bind("<Return>", self.setName)
@@ -49,6 +48,7 @@ class City :
         self.useCity.select()
         
     
+    """ Locks the name of a city by replacing the text box with a label"""
     def setName(self, name) :
         name = self.name.get()
         self.name.destroy()
@@ -56,6 +56,7 @@ class City :
         self.name.grid(row=self.i, column=0)
         
     
+    """ Replaces the name button with an editable text box"""
     def changeName(self) :
         self.name.destroy()
         self.name = gui.Entry(width=30, font="Verdana 12 bold")
@@ -63,6 +64,7 @@ class City :
         self.name.grid(row=self.i, column=0)        
         
         
+    """ Changes the city's population label to an entry text editor"""
     def changeVal(self) :
         self.label.destroy()
         self.label = gui.Entry(width=5)
@@ -70,6 +72,7 @@ class City :
         self.label.grid(row=self.i, column=2)
         
         
+    """ Update the city's population value to this value"""
     def updateVal(self, val) :
         val = int(self.label.get())
         if val >= 0 :
@@ -77,38 +80,43 @@ class City :
         self.refresh()
         
         
+    """ Increment the population value by 1"""
     def push(self) :
         self.val += 1
         self.refresh()
         
         
+    """ Increments the city's population value by 5"""
+    def push5(self) :
+        for i in range(5) :
+            self.push()
+            
+            
     def use(self) :
         if self.var.get() == 1 :
             return True
         return False
         
         
-        
+    """ When checked, calls useCity"""
     def checkBox(self) :
         self.useCity.invoke()
-        
-        
-    def push5(self) :
-        for i in range(5) :
-            self.push()
             
             
+    """ Decrements the city's population value by 1"""
     def back(self) :
         if self.val > 0:
             self.val -= 1
         self.refresh()
         
         
+    """ Decrements the city's population value by 5"""
     def back5(self) :
         for i in range(5) :
             self.back()
         
         
+    """ Refresh the global population value"""
     def refresh(self) :
         updatePopVal(self.i)
         self.label.destroy()
@@ -116,6 +124,7 @@ class City :
         self.label.grid(row=self.i, column=2)      
         
         
+    """ Deletes the city"""
     def end(self) :
         self.val = 0
         self.refresh()
@@ -133,25 +142,30 @@ class City :
         cities.remove(self)
         
         
+    """ Return Value is the total city population"""
     def returnValue(self) :
         return (self.val**2.8)*1000
         
-    
+        
     def __str__(self) :
         return str(self.i)
         
         
 class PopValLabel :
+    """ The PopValLabel is defined once and displays the global population"""
     def __init__(self) :
         self.popVal = 0
         self.genWidgets() 
         
+        
+    """ Sets the main Label"""
     def genWidgets(self) :
         self.popValLabel = gui.Label(text="{:,}".format(int(self.popVal)),
                                      fg="blue", font="Verdana 20 bold")
         self.popValLabel.grid(row=0, column=1, columnspan=6)         
 
         
+    """ Refreshes the value of the main Label"""
     def refresh(self, popVal) :
         self.popVal = popVal
         self.popValLabel.destroy()
@@ -160,6 +174,7 @@ class PopValLabel :
         self.popValLabel.grid(row=0, column=1, columnspan=6)         
         
         
+""" Updates the global population Value"""
 def updatePopVal(ndx) :
     popVal = 0
     for city in cities :
@@ -168,17 +183,20 @@ def updatePopVal(ndx) :
     PopValLabel.refresh(popVal)
         
 
+""" Creates a new City"""
 def newCity() :
     global cities
     cities.append(City(len(cities) + 2))
             
         
+""" Flips all city checkboxes"""
 def checkAll() :
     global cities
     for city in cities :
         city.checkBox()
         
         
+# Main Program - Build Basic GUI and loop until program exit
 root = gui.Tk()
 cities = []
 newCity()
