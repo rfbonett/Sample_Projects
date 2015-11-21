@@ -1,0 +1,178 @@
+package edu.wm.cs.cs301.richardbonett.falstad;
+
+import android.os.SystemClock;
+import android.util.Log;
+
+/**
+ * The WallFollower is a Robot Driver that maneuvers a Robot to the maze's exit using a simple mentality:
+ * follow the left-hand wall at all times. The WallFollower's robot has two DistanceSensors which it uses to 
+ * detect the distance between the robot and the nearest wall to the robot's left and front. If the WallFollower
+ * notices that the robot is looping, it will attempt to set the robot onto a new track to end the loop. 
+ * If the WallFollower runs out of energy before it can reach the end of the maze, it throws an exception.
+ * 
+ * Responsibility: maneuver a robot through a maze using the left-hand rule
+ * 
+ * Collaborators: A robot to maneuver through the maze
+ * 
+ * @author Rich
+ *
+ */
+public class WallFollower implements RobotDriver, Runnable {
+
+	private Robot robot;
+	private int width;
+	private int height;
+	private Distance distance;
+	private int pathLength;
+	private int[][] visited;
+	private static int MAX_VISITS = 5;
+	private Thread driveThread;
+	private boolean error;
+	
+	@Override
+	public void setRobot(Robot r) {
+		robot = r;
+	}
+
+	@Override
+	public void setDimensions(int width, int height) {
+		this.width = width;
+		this.height = height;
+	}
+
+	@Override
+	public void setDistance(Distance distance) {
+		this.distance = distance;
+	}
+
+	@Override
+	public boolean drive2Exit() throws Exception {
+		Log.v("wallfollower", "starting!");
+		error = false;
+		if (!canGetStarted())
+			throw new Exception();
+		Log.v("wallfollower", "stage 1");
+		driveThread = new Thread(this);
+		driveThread.start();
+		Log.v("wallfollower", "stage 2");
+		try {
+			driveThread.join();
+		}
+		catch (Exception e) {
+			throw e;
+		}
+		if (error)
+			throw new Exception();
+		if (robot.isAtGoal()) {
+			while (robot.distanceToObstacle(Robot.Direction.FORWARD) != Integer.MAX_VALUE)
+				robot.rotate(Robot.Turn.RIGHT);
+			robot.move(1);
+			return true;
+		}
+		else 
+			return false;
+	}
+
+	/**
+	 * Implements the drive2Exit() method as a Thread, useful for visualization. This method guides the
+	 * robot along its lefthand wall, around corners when need be, until the exit is reached or the robot
+	 * runs out of energy.
+	 */
+	public void run() {
+		Log.v("wallfollower", "thread started!");
+		pathLength = 0;
+		while (!robot.isAtGoal()) {
+			try {
+				int moveDistance = robot.distanceToObstacle(Robot.Direction.FORWARD);
+				while (moveDistance >= 0) {
+					if (robot.distanceToObstacle(Robot.Direction.LEFT) != 0) {
+						robot.rotate(Robot.Turn.LEFT);
+						SystemClock.sleep(Constants.SLEEP_INTERVAL);
+						robot.move(1);
+						SystemClock.sleep(Constants.SLEEP_INTERVAL);
+						if (!addToVisited(robot.getCurrentPosition())) {
+							findNewTrack();
+							SystemClock.sleep(Constants.SLEEP_INTERVAL);
+						}
+						moveDistance = robot.distanceToObstacle(Robot.Direction.FORWARD) + 1;
+					}
+					else if (moveDistance > 0) {
+						robot.move(1);
+						SystemClock.sleep(Constants.SLEEP_INTERVAL);
+					}	
+					moveDistance--;
+					pathLength += 1;
+				}
+				robot.rotate(Robot.Turn.RIGHT);
+				SystemClock.sleep(Constants.SLEEP_INTERVAL);
+					
+			}
+			catch (Exception e) {
+				error = true;
+				driveThread.interrupt();
+				Log.v("wallfollower", "something went wrong... drive thread terminating: " + e);
+				return;
+			}
+		}
+	}
+	
+	@Override
+	public float getEnergyConsumption() {
+		return Constants.MAX_BATTERY_LEVEL - robot.getBatteryLevel();
+	}
+
+	@Override
+	public int getPathLength() {
+		return pathLength;
+	}
+	
+	/**
+	 * Checks if the robot is situated such that the WallFollower algorithm can begin; namely, the robot is
+	 * not in the middle of a room. 
+	 * @return boolean value representing whether the WallFollower algoirthm may begin (true if so)
+	 */
+	private boolean canGetStarted() {
+		visited = new int[width][height];
+		if (robot == null)
+			return false;
+		if (robot.isInsideRoom()) {
+			int distance = robot.distanceToObstacle(Robot.Direction.FORWARD);
+			try {
+				robot.move(distance);
+				robot.rotate(Robot.Turn.RIGHT);
+			}
+			catch (Exception e) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * Sets the robot onto a new track if the WallFollower notices that the robot is looping. 
+	 * @throws Exception if the robot runs out of energy
+	 */
+	private void findNewTrack() throws Exception{
+		try {
+			robot.rotate(Robot.Turn.RIGHT);
+			robot.move(robot.distanceToObstacle(Robot.Direction.FORWARD));
+			robot.rotate(Robot.Turn.RIGHT);
+		}
+		catch (Exception e) {
+			throw e;
+		}
+	}
+	
+	/**
+	 * Marks a cell as visited. If a cell is visited more than the allowed MAX_VISITS, a loop is assumed. 
+	 * @param pos the cell to mark as visited
+	 * @return boolean value representing whether the cell has exceeded its maximum visits (false if so)
+	 */
+	private boolean addToVisited(int[] pos) {
+		visited[pos[0]][pos[1]]++;
+		if (visited[pos[0]][pos[1]] > MAX_VISITS)
+			return false;
+		else
+			return true;
+	}
+}

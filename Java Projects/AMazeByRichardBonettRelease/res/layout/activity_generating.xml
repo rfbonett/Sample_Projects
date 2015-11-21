@@ -1,0 +1,48 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="edu.wm.cs.cs301.richardbonett.ui.GeneratingActivity" >
+
+	<ImageView
+	    android:id="@+id/imageView_generating"
+	    android:layout_width="fill_parent"
+	    android:layout_height="fill_parent"
+	    android:src="@drawable/mayan_calendar_background"
+	    android:alpha=".8"
+	    android:scaleType="fitXY"
+	    android:contentDescription="@string/imageView_generating_description"/>
+	    
+    <TextView
+        android:id="@+id/generation_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="80dp"
+        android:text="@string/generation_title"
+        android:textStyle="bold"
+        android:textSize="32sp"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+
+    <TextView
+        android:id="@+id/generation_progress_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/generation_title"
+        android:layout_marginTop="60dp"
+        android:layout_centerHorizontal="true"
+        android:text="@string/generation_progress"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <ProgressBar
+        android:id="@+id/generation_progress_bar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/generation_progress_text"
+        android:layout_alignParentStart= "true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="20dp" />
+    
+</RelativeLayout>

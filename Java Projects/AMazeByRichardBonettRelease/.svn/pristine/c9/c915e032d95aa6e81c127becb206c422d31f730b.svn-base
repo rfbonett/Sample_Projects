@@ -1,0 +1,119 @@
+package edu.wm.cs.cs301.richardbonett.falstad;
+
+/**
+ * A DistanceSensor fulfills the role of detecting the number of cells in a current direction from a position
+ * that a robot could travel before hitting a wall. A DistanceSensor achieves this using its maze object and 
+ * direction. 
+ * 
+ * Responsibility: detect distances towards walls in its given direction and relay this information to a robot
+ * 
+ * Collaborators: a Robot to call its operations
+ * 
+ * @author Rich
+ *
+ */
+public class DistanceSensor {
+	
+	private int direction;
+	private Maze maze;
+	
+	/**
+	 * Constructor for a DistanceSensor with an input direction and maze
+	 * @param direction
+	 * @param maze
+	 */
+	public DistanceSensor(int direction, Maze maze) {
+		this.direction = direction;
+		this.maze = maze;
+	}
+	
+	/**
+	 * Returns the number of cells one can travel in the distance sensor's direction before hitting a wall
+	 * @return integer representing number of unblocked cells
+	 */
+	public int distanceToNextWall() {
+		int distance = 0;
+		int angle = maze.getAngle();
+		int px = maze.getCurrentPosition()[0];
+		int py = maze.getCurrentPosition()[1];
+		int mazew = maze.getWidth();
+		int mazeh = maze.getHeight();
+		Cells mazecells = maze.getCells();
+		//System.out.println("DistanceSensor Data: px: " + px + " |py: " + py + " |angle: " + angle + "|" + direction);
+		
+		switch (angle + direction) {
+		case Constants.NORTH : case Constants.NORTH + 360 :
+			while (mazecells.hasNoWallOnBottom(px, py + distance)) {
+				distance++;
+				if (py + distance >= mazeh)
+					return Integer.MAX_VALUE;
+			}
+			break;
+		case Constants.EAST : case Constants.EAST + 360 :
+			while (mazecells.hasNoWallOnRight(px + distance, py)) {
+				distance++;
+				if (px + distance >= mazew)
+					return Integer.MAX_VALUE;
+			}
+			break;
+		case Constants.WEST : case Constants.WEST + 360 :
+			while (mazecells.hasNoWallOnLeft(px - distance, py)) {
+				distance++;
+				if (px - distance < 0)
+					return Integer.MAX_VALUE;
+			}
+			break;
+		case Constants.SOUTH : case Constants.SOUTH + 360 :
+			while (mazecells.hasNoWallOnTop(px, py - distance)) {
+				distance++;
+				if (py - distance < 0)
+					return Integer.MAX_VALUE;
+			}
+			break;
+		}
+		//System.out.println("DistanceSensor distance: " + distance + "|" + direction);
+		return distance;
+	}
+	
+	/**
+	 * Used to determine whether the distance sensor can see the end of the maze
+	 * @return boolean value representing the ability of the sensor to see the end of the maze (true if so)
+	 */
+	public boolean canSeeGoal() {
+		int distance = distanceToNextWall();
+		int px = maze.getCurrentPosition()[0];
+		int py = maze.getCurrentPosition()[1];
+		
+		switch (maze.getAngle() + direction) {
+		case Constants.NORTH : case Constants.NORTH + 360 :
+			for (;distance >= 0; distance--) {
+				int[] pos = {px, py + distance};
+				if (maze.isAtEndPosition(pos[0], pos[1]))
+					return true;
+			}
+			break;
+		case Constants.EAST : case Constants.EAST + 360 :
+			for (;distance >= 0; distance--) {
+				int[] pos = {px + distance, py};
+				if (maze.isAtEndPosition(pos[0], pos[1]))
+					return true;
+			}
+			break;
+		case Constants.WEST : case Constants.WEST + 360 :
+			for (;distance >= 0; distance--) {
+				int[] pos = {px - distance, py};
+				if (maze.isAtEndPosition(pos[1], pos[1]))
+					return true;
+			}
+			break;
+		case Constants.SOUTH : case Constants.SOUTH + 360 :
+			for (;distance >= 0; distance--) {
+				int[] pos = {px, py - distance};
+				if (maze.isAtEndPosition(pos[0], pos[1]))
+					return true;
+			}
+			break;
+		}
+		return false;
+	}
+}

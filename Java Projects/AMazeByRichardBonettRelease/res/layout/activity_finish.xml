@@ -1,0 +1,75 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="edu.wm.cs.cs301.richardbonett.ui.FinishActivity" >
+
+    <ImageView
+	    android:id="@+id/imageView_generating"
+	    android:layout_width="fill_parent"
+	    android:layout_height="fill_parent"
+	    android:src="@drawable/mayan_calendar_background"
+	    android:alpha=".8"
+	    android:scaleType="fitXY"
+	    android:contentDescription="@string/imageView_generating_description"/>
+    
+    <Button
+        android:id="@+id/button_return_to_title"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:onClick="returnToTitle"
+        android:text="@string/return_to_title" />
+
+    <TextView
+        android:id="@+id/textView_result"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="80dp"
+        android:text="@string/success"
+        android:textStyle="bold"
+        android:textSize="32sp"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+
+    <TextView
+        android:id="@+id/textView_energy_consumed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/textView_result"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="80dp"
+        android:text="@string/energy_consumed"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <TextView
+        android:id="@+id/textView_path_length"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@+id/textView_energy_consumed"
+        android:layout_marginTop="20dp"
+        android:text="@string/path_length"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <TextView
+        android:id="@+id/textView_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@+id/textView_path_length"
+        android:layout_marginTop="20dp"
+        android:text="@string/time"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+</RelativeLayout>

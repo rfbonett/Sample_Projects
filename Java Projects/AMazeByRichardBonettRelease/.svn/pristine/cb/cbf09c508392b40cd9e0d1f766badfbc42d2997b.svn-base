@@ -1,0 +1,31 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="edu.wm.cs.cs301.richardbonett.PlayActivity" >
+
+    <item
+        android:id="@+id/action_settings"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="@string/action_settings"/>
+   
+    <item android:id="@+id/action_toggle_map"
+          android:icon="@drawable/ic_action_map"
+          android:title="@string/toggle_map"
+          android:showAsAction="ifRoom" />
+    
+    <item android:id="@+id/action_toggle_solution"
+          android:icon="@drawable/ic_action_solve"
+          android:title="@string/toggle_solution"
+          android:showAsAction="ifRoom" />
+    
+    <item android:id="@+id/action_show_walls"
+          android:icon="@drawable/ic_action_show_walls"
+          android:title="@string/show_walls"
+          android:showAsAction="ifRoom" />
+    
+    <item android:id="@+id/action_save"
+          android:icon="@drawable/ic_action_save"
+          android:title="@string/save" 
+          android:showAsAction="ifRoom" />
+
+</menu>

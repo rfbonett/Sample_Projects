@@ -1,0 +1,401 @@
+package edu.wm.cs.cs301.richardbonett.falstad;
+
+import java.util.ArrayList;
+
+import android.util.Log;
+
+/**
+ * Class handles the user interaction for the maze. 
+ * It implements a state-dependent behavior that controls the display and reacts to key board input from a user. 
+ * After refactoring the original code from an applet into a panel, it is wrapped by a MazeApplication to be a java application 
+ * and a MazeApp to be an applet for a web browser. At this point user keyboard input is first dealt with a key listener
+ * and then handed over to a Maze object by way of the keyDown method.
+ *
+ * This code is refactored code from Maze.java by Paul Falstad, www.falstad.com, Copyright (C) 1998, all rights reserved
+ * Paul Falstad granted permission to modify and use code for teaching purposes.
+ * Refactored by Peter Kemper
+ */
+// MEMO: original code: public class Maze extends Applet {
+//public class Maze extends Panel {
+public class Maze  {
+
+	// Model View Controller pattern, the model needs to know the viewers
+	// however, all viewers share the same graphics to draw on, such that the share graphics
+	// are administered by the Maze object
+		
+
+
+	private int state;			// keeps track of the current GUI state, one of STATE_TITLE,...,STATE_FINISH, mainly used in redraw()
+	// possible values are defined in Constants
+	// user can navigate 
+	// title -> generating -(escape) -> title
+	// title -> generation -> play -(escape)-> title
+	// title -> generation -> play -> finish -> title
+	// STATE_PLAY is the main state where the user can navigate through the maze in a first person view
+
+	private int percentdone = 0; // describes progress during generation phase
+	private boolean showMaze;		 	// toggle switch to show overall maze on screen
+	private boolean showSolution;		// toggle switch to show solution in overall maze on screen
+	private boolean solving;			// toggle switch 
+	private boolean mapMode; // true: display map of maze, false: do not display map of maze
+	// map_mode is toggled by user keyboard input, causes a call to draw_map during play mode
+
+	//static final int viewz = 50;    
+	int viewx, viewy;
+	int dx, dy;  // current direction
+	int px, py ; // current position on maze grid (x,y)
+	int walkStep;
+	int viewdx, viewdy; // current view direction
+
+
+	// debug stuff
+	boolean deepdebug = false;
+	boolean allVisible = false;
+	boolean newGame = false;
+	public boolean ready = false;
+
+	// properties of the current maze
+	int mazew; // width of maze
+	int mazeh; // height of maze
+	Cells mazecells ; // maze as a matrix of cells which keep track of the location of walls
+	Distance mazedists ; // a matrix with distance values for each cell towards the exit
+	Cells seencells ; // a matrix with cells to memorize which cells are visible from the current point of view
+	// the FirstPersonDrawer obtains this information and the MapDrawer uses it for highlighting currently visible walls on the map
+	// a segment is a continuous sequence of walls in vertical or horizontal direction
+	// a subset of segments need to be quickly identified for drawing
+	// the BSP tree partitions the set of all segments and provides a binary search tree for the partitions
+	
+
+	// Mazebuilder is used to calculate a new maze together with a solution
+	// The maze is computed in a separate thread. It is started in the local Build method.
+	// The calculation communicates back by calling the local newMaze() method.
+	MazeBuilder mazebuilder;
+	Robot robot;
+	RobotDriver driver;
+	private ArrayList<Operation> opList;
+	private int sleepIter = 4;
+	public boolean success;
+	float angle;
+
+	
+	// fixing a value matching the escape key
+	final int ESCAPE = 27;
+
+	// generation method used to compute a maze
+	private String method = "Falstad";
+
+	int zscale = Constants.VIEW_HEIGHT/2;
+	
+	/**
+	 * Constructor
+	 */
+	public Maze() {
+		super() ;
+	}
+	/**
+	 * Constructor that also selects a particular generation method
+	 */
+	public Maze(String method)
+	{
+		super() ;
+		this.method = method ;
+	}
+	/**
+	 * Method to initialize internal attributes. Called separately from the constructor. 
+	 */
+	public void init() {
+		state = Constants.STATE_TITLE;
+	}
+	
+	/**
+	 * Method obtains a new Mazebuilder and has it compute new maze, 
+	 * it is only used in keyDown()
+	 * @param skill level determines the width, height and number of rooms for the new maze
+	 */
+	public void build(int skill) {
+		// switch screen
+		state = Constants.STATE_GENERATING;
+		percentdone = 0;
+		// select generation method
+		if (Constants.BUILDER_KRUSKAL.equalsIgnoreCase(method)) {
+			mazebuilder = new MazeBuilderKruskal();
+			Log.v("maze", "kruskal");
+		}
+		else if (Constants.BUILDER_PRIM.equalsIgnoreCase(method)) {
+			mazebuilder = new MazeBuilderPrim();
+			Log.v("maze", "prim");
+		}
+		else {
+			mazebuilder = new MazeBuilder();
+			Log.v("maze", "falstad");
+		}
+
+		// adjust settings and launch generation in a separate thread
+		mazew = Constants.SKILL_X[skill];
+		mazeh = Constants.SKILL_Y[skill];
+		mazebuilder.build(this, mazew, mazeh, Constants.SKILL_ROOMS[skill], Constants.SKILL_PARTCT[skill]);
+		// mazebuilder performs in a separate thread and calls back by calling newMaze() to return newly generated maze
+	}
+	
+	/**
+	 * Call back method for MazeBuilder to communicate newly generated maze as reaction to a call to build()
+	 * @param root node for traversals, used for the first person perspective
+	 * @param cells encodes the maze with its walls and border
+	 * @param dists encodes the solution by providing distances to the exit for each position in the maze
+	 * @param startx current position, x coordinate
+	 * @param starty current position, y coordinate
+	 */
+	public void newMaze(Cells c, Distance dists, int startx, int starty) {
+		if (Cells.deepdebugWall)
+		{   // for debugging: dump the sequence of all deleted walls to a log file
+			// This reveals how the maze was generated
+			c.saveLogFile(Cells.deepedebugWallFileName);
+		}
+		// adjust internal state of maze model
+		showMaze = showSolution = solving = false;
+		mazecells = c ;
+		mazedists = dists;
+		seencells = new Cells(mazew+1,mazeh+1) ;
+		setCurrentDirection(1, 0) ;
+		setCurrentPosition(startx,starty) ;
+		walkStep = 0;
+		viewdx = dx<<16; 
+		viewdy = dy<<16;
+		angle = 0;
+		mapMode = false;
+		// set the current state for the state-dependent behavior
+		state = Constants.STATE_PLAY;
+		ready = true;
+		// register views for the new maze
+		// mazew and mazeh have been set in build() method before mazebuider was called to generate a new maze.
+		// reset map_scale in mapdrawer to a value of 10
+		// notify viewers
+		opList = new ArrayList<Operation>();
+		if (robot != null && driver != null) {
+			success = false;
+			try {
+				robot.setBatteryLevel(Constants.MAX_BATTERY_LEVEL);
+				driver.setDistance(mazedists);
+				driver.setDimensions(mazew, mazeh);
+				driver.drive2Exit();
+			}
+			catch (Exception e) {
+				state = Constants.STATE_FINISH;
+			}
+		}
+	}
+
+	
+	////////////////////////////// get methods ///////////////////////////////////////////////////////////////
+	boolean isInMapMode() { 
+		return mapMode ; 
+	} 
+	boolean isInShowMazeMode() { 
+		return showMaze ; 
+	} 
+	boolean isInShowSolutionMode() { 
+		return showSolution ; 
+	} 
+	public String getPercentDone(){
+		return String.valueOf(percentdone) ;
+	}
+
+	////////////////////////////// set methods ///////////////////////////////////////////////////////////////
+	////////////////////////////// Actions that can be performed on the maze model ///////////////////////////
+	private void setCurrentDirection(int x, int y)
+	{
+		dx = x ;
+		dy = y ;
+	}
+	
+	
+	void buildInterrupted() {
+		state = Constants.STATE_TITLE;
+		mazebuilder = null;
+	}
+
+	final double radify(int x) {
+		return x*Math.PI/180;
+	}
+	
+	/**
+	 * Allows external increase to percentage in generating mode with subsequence graphics update
+	 * @param pc gives the new percentage on a range [0,100]
+	 * @return true if percentage was updated, false otherwise
+	 */
+	public boolean increasePercentage(int pc) {
+		if (percentdone < pc && pc < 100) {
+			percentdone = pc;
+			if (state == Constants.STATE_GENERATING)
+			{
+			
+			}
+			else
+				dbg("Warning: Receiving update request for increasePercentage while not in generating state, skip redraw.") ;
+			return true ;
+		}
+		return false ;
+	}
+
+	/////////////////////// Methods for debugging ////////////////////////////////
+	private void dbg(String str) {
+		//System.out.println(str);
+	}
+
+	private void logPosition() {
+		if (!deepdebug)
+			return;
+		dbg("x="+viewx/Constants.MAP_UNIT+" ("+
+				viewx+") y="+viewy/Constants.MAP_UNIT+" ("+viewy+") ang="+
+				angle+" dx="+dx+" dy="+dy+" "+viewdx+" "+viewdy);
+	}
+	///////////////////////////////////////////////////////////////////////////////
+	/**
+	 * checks if the given position is outside the maze
+	 * @param x
+	 * @param y
+	 * @return true if position is outside, false otherwise
+	 */
+	private boolean isEndPosition(int x, int y) {
+		return x < 0 || y < 0 || x >= mazew || y >= mazeh;
+	}
+
+	public int[] getCurrentPosition() {
+		int[] curPos = {px, py};
+		return curPos;
+	}
+
+	public boolean isAtEndPosition(int x, int y) {
+		return mazedists.getDistance(x, y) == 1;
+	}
+
+	public Cells getCells() {
+		return mazecells;
+	}
+	
+	public Distance getDists() {
+		return mazedists;
+	}
+	
+	public int getWidth() {
+		return mazew;
+	}
+	
+	public int getHeight() {
+		return mazeh;
+	}
+	
+	public boolean isInRoom() {
+		return mazecells.isInRoom(px, py);
+	}
+	
+	public void setState(int state) {
+		this.state = state;
+	}
+	
+	public int getState() {
+		return state;
+	}
+	
+	public void addRobot(Robot robot, RobotDriver driver) {
+		this.robot = robot;
+		this.driver = driver;
+	}
+	
+	public boolean ready() {
+		return ready;
+	}
+	
+	public int getProgress() {
+		if (mazebuilder != null)
+			return mazebuilder.getProgressPercent();
+		return 0;
+	}
+	
+	public void setCurrentPosition(int x, int y) {
+		px = x;
+		py = y;
+	}
+	
+	public void enqueueOperation(Operation op) {
+		opList.add(op);
+	}
+	
+	public void move(int dist) {
+		px += (int) Math.cos(angle)*dist;
+		py += (int) Math.sin(angle)*dist;
+	}
+	
+	public void rotate(double angle) {
+		this.angle += angle;
+	}
+	
+	public int distanceFront() {
+		if (Math.cos(angle) == -1)
+			return distanceBack();
+		else if (Math.sin(angle) == 1)
+			return distanceLeft();
+		else if (Math.sin(angle) == -1)
+			return distanceRight();
+		int dist = 0;
+		int x = px;
+		int y = py;
+		while (mazecells.hasNoWallOnRight(x, y)) {
+			x += 1;
+			dist += 1;
+		}
+		return dist;
+	}
+	
+	public int distanceRight() {
+		if (Math.cos(angle) == -1)
+			return distanceLeft();
+		else if (Math.sin(angle) == 1)
+			return distanceFront();
+		else if (Math.sin(angle) == -1)
+			return distanceBack();
+		int dist = 0;
+		int x = px;
+		int y = py;
+		while (mazecells.hasNoWallOnBottom(x, y)) {
+			y += 1;
+			dist += 1;
+		}
+		return dist;
+	}
+	
+	public int distanceLeft() {
+		if (Math.cos(angle) == -1)
+			return distanceRight();
+		else if (Math.sin(angle) == 1)
+			return distanceBack();
+		else if (Math.sin(angle) == -1)
+			return distanceFront();
+		int dist = 0;
+		int x = px;
+		int y = py;
+		while (mazecells.hasNoWallOnTop(x, y)) {
+			y -= 1;
+			dist += 1;
+		}
+		return dist;
+	}
+	
+	public int distanceBack() {
+		if (Math.cos(angle) == -1)
+			return distanceFront();
+		else if (Math.sin(angle) == 1)
+			return distanceRight();
+		else if (Math.sin(angle) == -1)
+			return distanceLeft();
+		int dist = 0;
+		int x = px;
+		int y = py;
+		while (mazecells.hasNoWallOnLeft(x, y)) {
+			x -= 1;
+			dist += 1;
+		}
+		return dist;
+	}
+	
+}

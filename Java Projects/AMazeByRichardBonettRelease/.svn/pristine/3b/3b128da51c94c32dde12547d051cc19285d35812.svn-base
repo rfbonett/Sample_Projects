@@ -1,0 +1,212 @@
+package edu.wm.cs.cs301.richardbonett.falstad;
+
+import java.util.Arrays;
+
+/**
+ * The Wizard is a Robot Driver that maneuvers a Robot to the maze's exit using by "cheating," using its mazes
+ * Distance object to discover the fastest route out of a maze. The Wizard's robot has Distance Sensors on all 
+ * four sides, forward, left, right, and backward, to maximize its pathfinding capabilities. The Wizard has a 
+ * robot and a distance object. 
+ * 
+ * Responsibility: maneuver a robot through a maze using a distance object
+ * 
+ * Collaborators: A robot to maneuver through a maze, a distance object to use for pathfinding purposes
+ * 
+ * @author Rich
+ *
+ */
+public class Wizard implements RobotDriver, Runnable {
+
+	private Robot robot;
+	private int width;
+	private int height;
+	private Distance distance;
+	
+	private int pathLength;
+	private int distanceToWall;
+	private static int[] EAST = {0, 1};
+	private static int[] NORTH = {-1, 0};
+	private static int[] WEST = {0, -1};
+	private static int[] SOUTH = {1, 0};
+	private Thread driveThread;
+	private boolean error;
+	
+	@Override
+	public void setRobot(Robot r) {
+		robot = r;
+	}
+
+	@Override
+	public void setDimensions(int width, int height) {
+		this.width = width;
+		this.height = height;
+	}
+
+	@Override
+	public void setDistance(Distance distance) {
+		this.distance = distance;
+	}
+
+	@Override
+	public boolean drive2Exit() throws Exception {
+		error = false;
+		driveThread = new Thread(this);
+		driveThread.start();
+		try {
+			driveThread.join();
+		}
+		catch (Exception e) {
+			throw e;
+		}
+		if (error)
+			throw new Exception();
+		if (robot.isAtGoal()) {
+			while (robot.distanceToObstacle(Robot.Direction.FORWARD) != Integer.MAX_VALUE)
+				robot.rotate(Robot.Turn.RIGHT);
+			robot.move(1);
+			return true;
+		}
+		else 
+			return false;
+	}
+	
+	/**
+	 * Implements the Wizard's drive2Exit() method using a Thread, great for visualization. The Wizard
+	 * maneuvers the robot using its maze's Distance object to find the fastest route out of the maze. 
+	 */
+	public void run() {
+		pathLength = 0;
+		distanceToWall = robot.distanceToObstacle(Robot.Direction.FORWARD);
+		while (!robot.isAtGoal()) {
+			try {
+				orientRobot();
+				Thread.sleep(Constants.SLEEP_INTERVAL);
+				robot.move(1);
+				Thread.sleep(Constants.SLEEP_INTERVAL);
+				distanceToWall -= 1;
+				pathLength += 1;
+			}
+			catch (Exception e) {
+				error = true;
+				driveThread.interrupt();
+				return;
+			}
+		}
+	}
+	
+	@Override
+	public float getEnergyConsumption() {
+		return Constants.MAX_BATTERY_LEVEL - robot.getBatteryLevel();
+	}
+
+	@Override
+	public int getPathLength() {
+		return pathLength;
+	}
+	
+	/**
+	 * Used to tell if the cell in a certain direction from the robot is closer to the exit than
+	 * the robot's current cell.
+	 * @param pos the current cell of the robot
+	 * @param dir the direction in question, Forward/Right/Left/Backward
+	 * @return boolean value representing if the other cell is closer to the exit than the current cell
+	 * (false if so)
+	 */
+	private boolean distanceIsLess(int[] pos, int[] dir) {
+		if (pos[0] + dir[0] >= width || pos[0] + dir[0] < 0 || pos[1] + dir[1] >= height || pos[1] + dir[1] < 0)
+			return false;
+		return distance.getDistance(pos[0], pos[1]) > distance.getDistance(pos[0] + dir[0], pos[1] + dir[1]);
+	}
+	
+	/**
+	 * Orients the robot such that the robot is now facing a cell whose distance from the exit is less than
+	 * the robot's current cell. Prefers the cell directly in front of the robot, then the cells directly on
+	 * the robot's sides, in an attempt to minimize energy usage. It is also very unlikely that the cell
+	 * behind the robot will have a distance less than the cell in front and be accessible; this can only be 
+	 * the case when viewing the very first cell after initialization. 
+	 * @return boolean value representing success/failure of orientation
+	 * @throws Exception if the robot runs out of energy
+	 */
+	private boolean orientRobot() throws Exception {
+		try {
+			int[] dir = robot.getCurrentDirection();
+			int[] curPos = robot.getCurrentPosition();
+			if (distanceToWall > 0 && distanceIsLess(curPos, dir)) {
+				return true;
+			}
+			int[] dirLeft = leftOf(dir).clone();
+			if (distanceIsLess(curPos, dirLeft)) {
+				distanceToWall = robot.distanceToObstacle(Robot.Direction.LEFT);
+				if (distanceToWall > 0) {
+					robot.rotate(Robot.Turn.LEFT);
+					return true;
+				}
+			}
+			int[] dirRight = rightOf(dir).clone();
+			if (distanceIsLess(curPos, dirRight)) {
+				distanceToWall = robot.distanceToObstacle(Robot.Direction.RIGHT);
+				if (distanceToWall > 0) {
+					robot.rotate(Robot.Turn.RIGHT);
+					return true;
+				}
+			}
+			distanceToWall = robot.distanceToObstacle(Robot.Direction.BACKWARD);
+			robot.rotate(Robot.Turn.AROUND);
+			return true;
+		}
+		catch (Exception e) {
+			throw e;
+		}
+	}
+	
+	/**
+	 * Returns the modified direction of an input direction 90 degrees to the left
+	 * @param dir the direction to modify
+	 * @return direction as modified to be 90 degrees to the left of the input
+	 */
+	public int[] leftOf(int[] dir) {
+		if (Arrays.equals(dir, EAST))
+			return NORTH;
+		else if (Arrays.equals(dir, NORTH))
+			return WEST;
+		else if (Arrays.equals(dir, WEST))
+			return SOUTH;
+		else 
+			return EAST;
+	}
+	
+	/**
+	 * Returns the modified direction of an input direction 90 degrees to the right
+	 * @param dir the direction to modify
+	 * @return direction as modified to be 90 degrees to the right of the input
+	 */
+	public int[] rightOf(int[] dir) {
+		if (Arrays.equals(dir, EAST))
+			return SOUTH;
+		else if (Arrays.equals(dir, NORTH))
+			return EAST;
+		else if (Arrays.equals(dir, WEST))
+			return NORTH;
+		else 
+			return WEST;
+	}
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+}

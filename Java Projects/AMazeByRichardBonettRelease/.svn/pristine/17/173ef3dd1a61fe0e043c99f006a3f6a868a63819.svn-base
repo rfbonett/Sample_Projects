@@ -1,0 +1,201 @@
+package edu.wm.cs.cs301.richardbonett.falstad;
+
+import java.util.HashMap;
+
+import edu.wm.cs.cs301.richardbonett.ui.GLRendererNew;
+
+/**
+ * A BasicRobot is a Robot that has a Maze object that it acts on with simple movement/rotation methods. The 
+ * BasicRobot is used by RobotDrivers to maneuver a Maze towards the exit. A BasicRobot can have at most four 
+ * DistanceSensors for each side Forward, Right, Left, and Backward, as well as a sensor to determine whether
+ * or not it is currently in a room. 
+ * 
+ * Responsibility: serve as the intermediary between a maze-solving algorithm (i.e. RobotDriver) and a maze
+ * 
+ * Collaborators: a Maze to explore, a RobotDriver to maneuver the robot, and DistanceSensors to manage the
+ * robot's distance sensing capabilities
+ * 
+ * @author Rich
+ *
+ */
+public class BasicRobot implements Robot {
+
+	private float energy;
+	private Maze maze;
+	private GLRendererNew renderer;
+	private HashMap<Direction, DistanceSensor> sensors;
+	private boolean hasRoomSensor;
+	
+	/**
+	 * A BasicRobot can be constructed with no parameters, but is essentially useless until setMaze() is called
+	 */
+	public BasicRobot(GLRendererNew renderer) {
+		this.renderer = renderer;
+	}
+	
+	/**
+	 * Constructs a BasicRobot with predefined distance sensors and an option for setting its room sensor on/off
+	 * @param forward forward-facing DistanceSensor
+	 * @param right right-facing DistanceSensor
+	 * @param left left-facing DistanceSensor
+	 * @param backward back-facing DistanceSensor
+	 * @param hasRoomSensor boolean value representing the possession of a room sensor or not (true if so)
+	 */
+	public BasicRobot(DistanceSensor forward, DistanceSensor right, DistanceSensor left, DistanceSensor backward, boolean hasRoomSensor) {
+		energy = 2500;
+		this.hasRoomSensor = hasRoomSensor;
+		sensors = new HashMap<Direction, DistanceSensor>();
+		sensors.put(Direction.FORWARD, forward);
+		sensors.put(Direction.RIGHT, right);
+		sensors.put(Direction.LEFT, left);
+		sensors.put(Direction.BACKWARD, backward);
+	}
+	
+	@Override
+	public void rotate(Turn turn) throws Exception {
+		switch(turn) {
+		case LEFT :
+			energy -= 3;
+			renderer.rotateCamera((float) Math.PI/2);
+			maze.setAngle(90);
+			break;
+		case RIGHT :
+			energy -= 3;
+			renderer.rotateCamera((float) -Math.PI/2);
+			maze.setAngle(270);
+			break;
+		case AROUND :
+			energy -= 6;
+			renderer.rotateCamera((float) Math.PI);
+			maze.setAngle(180);
+			break;
+		}
+		if (energy <= 0) {
+			throw new Exception();
+		}
+	}
+
+	@Override
+	public void move(int distance) throws Exception {
+		while (distance > 0) {
+			if (distanceToObstacle(Direction.FORWARD) == 0)
+				break;
+			if (energy < 5) 
+				throw new Exception();
+			renderer.move(4);
+			distance -= 1;
+			energy -= 5;
+		}
+	}
+
+	@Override
+	public int[] getCurrentPosition() throws Exception {
+		int[] curPos;
+		try {
+			curPos = maze.getCurrentPosition();
+		}
+		catch (Exception OutOfBoundsException) {
+			throw OutOfBoundsException;
+		}
+		return curPos;
+	}
+
+	@Override
+	public void setMaze(Maze maze) {
+		if (sensors == null) {
+			energy = 2500;
+			this.hasRoomSensor = true;
+			DistanceSensor forward = new DistanceSensor(Constants.EAST, maze);
+			DistanceSensor left = new DistanceSensor(Constants.NORTH, maze);
+			DistanceSensor right = new DistanceSensor(Constants.SOUTH, maze);
+			DistanceSensor back = new DistanceSensor(Constants.WEST, maze);
+			sensors = new HashMap<Direction, DistanceSensor>();
+			sensors.put(Direction.FORWARD, forward);
+			sensors.put(Direction.RIGHT, right);
+			sensors.put(Direction.LEFT, left);
+			sensors.put(Direction.BACKWARD, back);
+		}
+		this.maze = maze;
+	}
+
+	@Override
+	public boolean isAtGoal() {
+		try {
+			return maze.isAtEndPosition(getCurrentPosition()[0], getCurrentPosition()[1]);
+		}
+		catch (Exception e) {
+			return true;
+		}
+		
+	}
+
+	@Override
+	public boolean canSeeGoal(Direction direction)
+			throws UnsupportedOperationException {
+		if (!hasDistanceSensor(direction))
+			throw new UnsupportedOperationException();
+		else 
+			return sensors.get(direction).canSeeGoal();
+	}
+
+	@Override
+	public boolean isInsideRoom() throws UnsupportedOperationException {
+		if (!hasRoomSensor())
+			throw new UnsupportedOperationException();
+		else 
+			return maze.isInRoom();
+	}
+
+	@Override
+	public boolean hasRoomSensor() {
+		return hasRoomSensor;
+	}
+
+	@Override
+	public int[] getCurrentDirection() {
+		int[] curDirection = {maze.dx, maze.dy};
+		return curDirection;
+	}
+
+	@Override
+	public float getBatteryLevel() {
+		return energy;
+	}
+
+	@Override
+	public void setBatteryLevel(float level) {
+		energy = level;
+		
+	}
+
+	@Override
+	public float getEnergyForFullRotation() {
+		return 12;
+	}
+
+	@Override
+	public float getEnergyForStepForward() {
+		return 5;
+	}
+
+	@Override
+	public boolean hasStopped() {
+		return energy <= 0;
+	}
+
+	@Override
+	public int distanceToObstacle(Direction direction)
+			throws UnsupportedOperationException {
+		if (!hasDistanceSensor(direction))
+			throw new UnsupportedOperationException();
+		energy -= 1;
+		return sensors.get(direction).distanceToNextWall();
+	}
+
+	@Override
+	public boolean hasDistanceSensor(Direction direction) {
+		return sensors.get(direction) != null;
+	}
+	
+
+}

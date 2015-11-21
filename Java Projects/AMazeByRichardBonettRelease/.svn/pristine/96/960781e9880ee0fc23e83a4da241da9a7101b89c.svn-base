@@ -1,0 +1,105 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:id="@+id/amaze_frame_layout"
+    tools:context="edu.wm.cs.cs301.richardbonett.ui.AMazeActivity" >
+    
+    <RelativeLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        tools:context="edu.wm.cs.cs301.richardbonett.ui.AMazeActivity" >
+        
+  	  <VideoView
+  	      android:id="@+id/videoView_amaze"
+  	      android:layout_width="fill_parent"
+  	      android:layout_height="fill_parent"
+  	      android:layout_alignParentTop="true"
+  	      android:layout_alignParentBottom="true"
+  	      android:layout_alignParentStart="true"
+  	      android:layout_alignParentEnd="true" />
+  	  
+    </RelativeLayout>
+    
+    <RelativeLayout 
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="edu.wm.cs.cs301.richardbonett.ui.AMazeActivity" >
+   
+    <TextView
+        android:id="@+id/textView_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="10dp"
+        android:text="@string/application_title"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+
+    <SeekBar
+        android:id="@+id/seekBar_difficulty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button_start"
+        android:layout_centerHorizontal="true"
+        android:background="@android:color/transparent" />
+    
+    <ImageView
+        android:id="@+id/imageView_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/spinner_operation_types"
+        android:layout_marginBottom="-20dp"
+        android:layout_centerHorizontal="true"
+        android:contentDescription="@string/imageView_title_description"
+        android:src="@drawable/aztec_pyramid2"
+        android:background="@null" />
+
+    <Spinner
+        android:id="@+id/spinner_operation_types"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/spinner_generation_algorithms"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:entries="@array/operation_types"
+        android:prompt="@string/operation_types_spinner_title"
+        android:background="@android:color/transparent"  />
+
+    <Spinner
+        android:id="@+id/spinner_generation_algorithms"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/seekBar_difficulty"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="16dp"
+        android:entries="@array/generation_algorithms"
+        android:prompt="@string/generation_algorithms_spinner_title"
+        android:background="@android:color/transparent"  />
+
+    <Button
+        android:id="@+id/button_load"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentEnd="true"
+        android:layout_centerHorizontal="true"
+        android:text="@string/load_button_title" 
+        android:onClick="loadFile" />
+
+    <Button
+        android:id="@+id/button_start"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+		android:layout_alignParentStart="true"
+		android:layout_alignParentEnd="true"
+		android:layout_centerHorizontal="true"
+        android:layout_above="@+id/button_load"
+        android:onClick="startMazeGeneration"
+        android:text="@string/start_button_title" />
+	
+    </RelativeLayout>
+
+</FrameLayout>
