@@ -1,4 +1,4 @@
-
+#Simple program that displays a tic tac toe board in the command line. Does not terminate on victory (yet)
 def solved(board)
   return false
 end
